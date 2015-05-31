@@ -1,4 +1,4 @@
-module Exp where
+module WExp where
 
 ----------------------------------------------------------------------
 
@@ -33,17 +33,33 @@ if b then ct else cf = `if b `then ct `else cf
 ----------------------------------------------------------------------
 
 {-# NO_TERMINATION_CHECK #-}
-norm : ∀{Γ A} → Exp Γ A → Exp Γ A
+whnf : ∀{Γ A} → Exp Γ A → Exp Γ A
 
 _∙_ : ∀{Γ A B} → Exp Γ (A `→ B) → Exp Γ A → Exp Γ B
-`λ b ∙ a = norm (sub a b)
+`λ b ∙ a = whnf (sub a b)
 f ∙ a = f `∙ a
 
-norm `true = `true
-norm `false = `false
-norm (`λ b) = `λ (norm b)
-norm (`var i) = `var i
-norm (f `∙ a) = norm f ∙ norm a
-norm (`if b `then ct `else cf) = if norm b then norm ct else norm cf
+whnf `true = `true
+whnf `false = `false
+whnf (`λ b) = `λ b
+whnf (`var i) = `var i
+whnf (f `∙ a) = whnf f ∙ whnf a
+whnf (`if b `then ct `else cf) = if whnf b then whnf ct else whnf cf
+
+----------------------------------------------------------------------
+
+{-# NO_TERMINATION_CHECK #-}
+force : ∀{Γ A} → Exp Γ A → Exp Γ A -- WHNF as input
+force `true = `true
+force `false = `false
+force (`λ b) = `λ (force (whnf b))
+force (`var i) = `var i
+force (f `∙ a) = force f `∙ force a
+force (`if b `then ct `else cf) = `if force b `then force ct `else force cf
+
+----------------------------------------------------------------------
+
+norm : ∀{Γ A} → Exp Γ A → Exp Γ A
+norm = force ∘ whnf
 
 ----------------------------------------------------------------------
