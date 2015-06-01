@@ -5,20 +5,10 @@ module Nf where
 open import Function
 open import Data.Empty
 open import Data.Unit
-open import Data.Product hiding ( map )
-open import Relation.Nullary
+open import Relation.Nullary hiding ( ¬_ )
 open import Relation.Binary.PropositionalEquality
 
 open import Type
-
-----------------------------------------------------------------------
-
-data Exp (Γ : Ctx) : Type → Set where
-  `true `false : Exp Γ `Bool
-  `λ : ∀{A B} (b : Exp (Γ , A) B) → Exp Γ (A `→ B)
-  `var : ∀{A} (i : Var Γ A) → Exp Γ A
-  _`∙_ : ∀{A B} (f : Exp Γ (A `→ B)) (a : Exp Γ A) → Exp Γ B
-  `if_`then_`else_ : ∀{C} (b : Exp Γ `Bool) (ct cf : Exp Γ C) → Exp Γ C
 
 ----------------------------------------------------------------------
 
@@ -33,7 +23,8 @@ data Nf Γ where
 data Neut Γ where
   `var : ∀{A} (i : Var Γ A) → Neut Γ A
   _`∙_ : ∀{A B} (f : Neut Γ (A `→ B)) (a : Nf Γ A) → Neut Γ B
-  `if_`then_`else_ : ∀{C} (b : Neut Γ `Bool) (ct cf : Nf Γ C) → Neut Γ C
+  `¬_ : (b : Neut Γ `Bool) → Neut Γ `Bool
+  _`∧_ : (b : Neut Γ `Bool) (b' : Nf Γ `Bool) → Neut Γ `Bool
 
 ----------------------------------------------------------------------
 
@@ -41,29 +32,22 @@ data Env (Φ : Ctx) : Ctx → Set where
   ∅ : Env Φ ∅
   _,_ : ∀{Γ A} → Env Φ Γ → Nf Φ A → Env Φ (Γ , A)
 
-map : ∀{Φ Δ Γ} → (∀{A} → Nf Φ A → Nf Δ A) → Env Φ Γ → Env Δ Γ
-map f ∅ = ∅
-map f (σ , a) = map f σ , f a
-
-postulate wkn : ∀{Γ A B} → Nf Γ B → Nf (Γ , A) B
-
-lift : ∀{Φ Γ A} → Env Φ Γ → Env (Φ , A) (Γ , A)
-lift σ = map wkn σ , `neut (`var here)
-
-lookup : ∀{Φ Γ A} → Env Φ Γ → Var Γ A → Nf Φ A
-lookup (σ , a) here = a
-lookup (σ , a) (there i) = lookup σ i
-
-idEnv : ∀{Γ} → Env Γ Γ
-idEnv {∅} = ∅
-idEnv {Γ , A} = map wkn idEnv , `neut (`var here)
+postulate
+  lift : ∀{Φ Γ A} → Env Φ Γ → Env (Φ , A) (Γ , A)
+  idEnv : ∀{Γ} → Env Γ Γ
+  lookup : ∀{Φ Γ A} → Env Φ Γ → Var Γ A → Nf Φ A
 
 ----------------------------------------------------------------------
 
-if_then_else_ : ∀{Γ C} → Nf Γ `Bool → Nf Γ C → Nf Γ C → Nf Γ C
-if `true then ct else cf = ct
-if `false then ct else cf = cf
-if `neut b then ct else cf = `neut (`if b `then cf `else cf)
+¬_ : ∀{Γ} → Nf Γ `Bool → Nf Γ `Bool
+¬ `true = `false
+¬ `false = `true
+¬ `neut b = `neut (`¬ b)
+
+_∧_ : ∀{Γ} → Nf Γ `Bool → Nf Γ `Bool → Nf Γ `Bool
+`true ∧ b' = b'
+`false ∧ b' = `false
+`neut b ∧ b' = `neut (b `∧ b')
 
 ----------------------------------------------------------------------
 
@@ -82,6 +66,57 @@ hsub σ (`neut a) = hsubᴺ σ a
 
 hsubᴺ σ (`var i) = lookup σ i
 hsubᴺ σ (f `∙ a) = hsubᴺ σ f ∙ hsub σ a
-hsubᴺ σ (`if b `then ct `else cf) = if hsubᴺ σ b then hsub σ ct else hsub σ cf
+hsubᴺ σ (`¬ b) = ¬ hsubᴺ σ b
+hsubᴺ σ (b `∧ b') = hsubᴺ σ b ∧ hsub σ b'
 
 ----------------------------------------------------------------------
+
+data Exp (Γ : Ctx) : Type → Set where
+  `λ : ∀{A B} (b : Exp (Γ , A) B) → Exp Γ (A `→ B)
+  `var : ∀{A} (i : Var Γ A) → Exp Γ A
+  _`∙_ : ∀{A B} (f : Exp Γ (A `→ B)) (a : Exp Γ A) → Exp Γ B
+
+True : Type
+True = `Bool
+
+False : Type
+False = `Bool
+
+Not : Type
+Not = `Bool `→ `Bool
+
+And : Type
+And = `Bool `→ `Bool `→ `Bool
+
+Prelude : Ctx
+Prelude = ∅ , True , False , Not , And
+
+----------------------------------------------------------------------
+
+true` : Nf ∅ True
+true` = `true
+
+false` : Nf ∅ False
+false` = `false
+
+¬`_ : Nf ∅ Not
+¬`_ = `λ (`neut (`¬ `var here))
+
+_∧`_ : Nf ∅ And
+_∧`_ = `λ (`λ (`neut (`var (there here) `∧ `neut (`var here))))
+
+prelude : Env ∅ Prelude
+prelude = ∅ , true` , false` , ¬`_ , _∧`_
+
+----------------------------------------------------------------------
+
+norm : ∀{Γ A} → Exp Γ A → Nf Γ A
+norm (`λ b) = `λ (norm b)
+norm (`var i) = `neut (`var i)
+norm (f `∙ a) = norm f ∙ norm a 
+
+delta : ∀{A} → Exp Prelude A → Nf ∅ A
+delta = hsub prelude ∘ norm
+
+----------------------------------------------------------------------
+

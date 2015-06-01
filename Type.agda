@@ -10,6 +10,8 @@ data Type : Set where
 
 ----------------------------------------------------------------------
 
+infixl 9 _,_
+
 data Ctx : Set where
   ∅ : Ctx
   _,_ : Ctx → Type → Ctx
