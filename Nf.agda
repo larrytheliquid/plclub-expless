@@ -3,11 +3,6 @@ module Nf where
 ----------------------------------------------------------------------
 
 open import Function
-open import Data.Empty
-open import Data.Unit
-open import Relation.Nullary hiding ( ¬_ )
-open import Relation.Binary.PropositionalEquality
-
 open import Type
 
 ----------------------------------------------------------------------

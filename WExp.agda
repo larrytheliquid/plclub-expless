@@ -3,12 +3,6 @@ module WExp where
 ----------------------------------------------------------------------
 
 open import Function
-open import Data.Empty
-open import Data.Unit
-open import Data.Product
-open import Relation.Nullary
-open import Relation.Binary.PropositionalEquality
-
 open import Type
 
 ----------------------------------------------------------------------
@@ -18,17 +12,23 @@ data Exp (Γ : Ctx) : Type → Set where
   `λ : ∀{A B} (b : Exp (Γ , A) B) → Exp Γ (A `→ B)
   `var : ∀{A} (i : Var Γ A) → Exp Γ A
   _`∙_ : ∀{A B} (f : Exp Γ (A `→ B)) (a : Exp Γ A) → Exp Γ B
-  `if_`then_`else_ : ∀{C} (b : Exp Γ `Bool) (ct cf : Exp Γ C) → Exp Γ C
+  `¬_ : (b : Exp Γ `Bool) → Exp Γ `Bool
+  _`∧_ : (b : Exp Γ `Bool) (b' : Exp Γ `Bool) → Exp Γ `Bool
 
 ----------------------------------------------------------------------
 
 postulate
   sub : ∀{Γ A B} → Exp Γ A → Exp (Γ , A) B → Exp Γ B
 
-if_then_else_ : ∀{Γ C} → Exp Γ `Bool → Exp Γ C → Exp Γ C → Exp Γ C
-if `true then ct else cf = ct
-if `false then ct else cf = cf
-if b then ct else cf = `if b `then ct `else cf
+¬_ : ∀{Γ} → Exp Γ `Bool → Exp Γ `Bool
+¬ `true = `false
+¬ `false = `true
+¬ b = `¬ b
+
+_∧_ : ∀{Γ} → Exp Γ `Bool → Exp Γ `Bool → Exp Γ `Bool
+`true ∧ b' = b'
+`false ∧ b' = `false
+b ∧ b' = b `∧ b'
 
 ----------------------------------------------------------------------
 
@@ -44,7 +44,8 @@ whnf `false = `false
 whnf (`λ b) = `λ b
 whnf (`var i) = `var i
 whnf (f `∙ a) = whnf f ∙ whnf a
-whnf (`if b `then ct `else cf) = if whnf b then whnf ct else whnf cf
+whnf (`¬ b) = ¬ whnf b
+whnf (b `∧ b') = whnf b ∧ whnf b'
 
 ----------------------------------------------------------------------
 
@@ -55,7 +56,8 @@ force `false = `false
 force (`λ b) = `λ (force (whnf b))
 force (`var i) = `var i
 force (f `∙ a) = force f `∙ force a
-force (`if b `then ct `else cf) = `if force b `then force ct `else force cf
+force (`¬ b) = `¬ force b
+force (b `∧ b') = force b `∧ force b'
 
 ----------------------------------------------------------------------
 
