@@ -2,40 +2,33 @@ module Wh where
 
 ----------------------------------------------------------------------
 
-postulate undefined : ∀{ℓ} {A : Set ℓ} → A
-
 open import Function
 open import Data.Nat
 open import Data.Fin hiding ( lift ) renaming ( Fin to Var; zero to here; suc to there )
 open import Relation.Nullary.Decidable using ( True )
 open import Data.Vec
 
+open import Prelude
+
 ----------------------------------------------------------------------
 
 data Wh (γ : ℕ) : Set
 data Nu (γ : ℕ) : Set
 
-Env : ℕ → ℕ → Set
-Env φ = Vec (Wh φ)
-
-infix 2 _`/_
-record Bind (γ : ℕ) : Set where
-  inductive
-  constructor _`/_
-  field
-    {scope} : ℕ
-    env : Env γ scope
-    val : Wh (suc scope)
-
 data Wh γ where
   `Type : Wh γ
-  `Π : (A : Wh γ) (B : Bind γ) → Wh γ
-  `λ : (b : Bind γ) → Wh γ
+  `Π : (A : Wh γ) (B : Close Wh Wh γ) → Wh γ
+  `λ : (b : Close Wh Wh γ) → Wh γ
   `[_] : Nu γ → Wh γ
 
 data Nu γ where
   `var : (i : Var γ) → Nu γ
   _`∙_ : (f : Nu γ) (a : Wh γ) → Nu γ
+
+----------------------------------------------------------------------
+
+Env : ℕ → ℕ → Set
+Env φ = Vec (Wh φ)
 
 ----------------------------------------------------------------------
 
@@ -45,12 +38,12 @@ postulate
 
 ----------------------------------------------------------------------
 
-`∣_∣ : ∀{γ} → Wh (suc γ) → Bind γ
-`∣ a ∣ = idEnv `/ a
+∣_∣ : ∀{γ} → Wh (suc γ) → Close Wh Wh γ
+∣ a ∣ = idEnv `/ a
 
 infixr 3 _`→_
 _`→_ : ∀{γ} (A B : Wh γ) → Wh γ
-A `→ B = `Π A `∣ wkn B ∣
+A `→ B = `Π A ∣ wkn B ∣
 
 ----------------------------------------------------------------------
 
@@ -69,8 +62,8 @@ lift σ = `x 0 ∷ map wkn σ
 wh-hsub : ∀{φ γ} → Env φ γ → Wh γ → Wh φ
 wh-hsubᴺ : ∀{φ γ} → Env φ γ → Nu γ → Wh φ
 
-wh-hsubᴮ : ∀{φ γ} → Env φ γ → Bind γ → Bind φ
-wh-hsubᴮ σ (ρ `/ b) = map (wh-hsub σ) ρ `/ b
+wh-hsubᴷ : ∀{φ γ} → Env φ γ → Close Wh Wh γ → Close Wh Wh φ
+wh-hsubᴷ σ (ρ `/ b) = map (wh-hsub σ) ρ `/ b
 
 _∙_ : ∀{γ} → Wh γ → Wh γ → Wh γ
 `λ (σ `/ b) ∙ a = wh-hsub (a ∷ σ) b
@@ -78,8 +71,8 @@ _∙_ : ∀{γ} → Wh γ → Wh γ → Wh γ
 f ∙ a = undefined
 
 wh-hsub σ `Type = `Type
-wh-hsub σ (`Π A B) = `Π (wh-hsub σ A) (wh-hsubᴮ σ B)
-wh-hsub σ (`λ b) = `λ (wh-hsubᴮ σ b)
+wh-hsub σ (`Π A B) = `Π (wh-hsub σ A) (wh-hsubᴷ σ B)
+wh-hsub σ (`λ b) = `λ (wh-hsubᴷ σ b)
 wh-hsub σ `[ a ] = wh-hsubᴺ σ a
 
 wh-hsubᴺ σ (`var i) = lookup i σ
@@ -92,8 +85,8 @@ data Ne (γ : ℕ) : Set
 
 data Nf γ where
   `Type : Nf γ
-  `Π : (A : Nf γ) (B : Nf (suc γ)) → Nf γ
-  `λ : (b : Nf (suc γ)) → Nf γ
+  `Π : (A : Nf γ) (B : Bind Nf γ) → Nf γ
+  `λ : (b : Bind Nf γ) → Nf γ
   `[_] : Ne γ → Nf γ
 
 data Ne γ where
@@ -106,12 +99,12 @@ data Ne γ where
 force : ∀{γ} → Wh γ → Nf γ
 forceᴺ : ∀{γ} → Nu γ → Ne γ
 
-forceᴮ : ∀{γ} → Bind γ → Nf (suc γ)
-forceᴮ (σ `/ a) = force (wh-hsub (lift σ) a)
+forceᴷ : ∀{γ} → Close Wh Wh γ → Bind Nf γ
+forceᴷ (σ `/ a) = `∣ force (wh-hsub (lift σ) a) ∣
 
 force `Type = `Type
-force (`Π A B) = `Π (force A) (forceᴮ B)
-force (`λ b) = `λ (forceᴮ b)
+force (`Π A B) = `Π (force A) (forceᴷ B)
+force (`λ b) = `λ (forceᴷ b)
 force `[ a ] = `[ forceᴺ a ]
 
 forceᴺ (`var i) = `var i
@@ -120,17 +113,17 @@ forceᴺ (f `∙ a) = forceᴺ f `∙ force a
 ----------------------------------------------------------------------
 
 data Exp (γ : ℕ) : Set where
-  `λ : (b : Exp (suc γ)) → Exp γ
+  `λ : (b : Bind Exp γ) → Exp γ
   `var : (i : Var γ) → Exp γ
   _`∙_ : (f : Exp γ) (a : Exp γ) → Exp γ
 
 ----------------------------------------------------------------------
 
 Pi : Wh 0
-Pi = `Π `Type `∣ `x 0 `→ `Type ∣ `→ `Type
+Pi = `Π `Type ∣ `x 0 `→ `Type ∣ `→ `Type
 
 Π' : Wh 0
-Π' = `λ `∣ `λ `∣ `Π (`x 1) `∣ `[ `xᴺ 1 `∙ `x 0 ] ∣ ∣ ∣
+Π' = `λ ∣ `λ ∣ `Π (`x 1) ∣ `[ `xᴺ 1 `∙ `x 0 ] ∣ ∣ ∣
 
 Prim : ℕ
 Prim = 2
@@ -143,7 +136,11 @@ prelude = Π' ∷ `Type ∷ []
 ----------------------------------------------------------------------
 
 wh-norm : ∀{γ} → Exp γ → Wh γ
-wh-norm (`λ b) = `λ `∣ wh-norm b ∣
+
+wh-normᴮ : ∀{γ} → Bind Exp γ → Close Wh Wh γ
+wh-normᴮ `∣ b ∣ = ∣ wh-norm b ∣
+
+wh-norm (`λ b) = `λ (wh-normᴮ b)
 wh-norm (`var i) = `[ `var i ]
 wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a 
 
