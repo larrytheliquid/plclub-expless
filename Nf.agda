@@ -2,17 +2,13 @@ module Nf where
 
 ----------------------------------------------------------------------
 
-postulate undefined : {A : Set} → A
+postulate undefined : ∀{ℓ} {A : Set ℓ} → A
 
 open import Function
 open import Data.Nat
 open import Data.Fin hiding ( lift ) renaming ( Fin to Var; zero to here; suc to there )
 open import Relation.Nullary.Decidable using ( True )
 open import Data.Vec
-
--- infixr 5 _▹_
--- _▹_ : ∀{ℓ n} {A : Set ℓ} (xs : Vec A n) (x : A) → Vec A (suc n)
--- xs ▹ x = x ∷ xs
 
 ----------------------------------------------------------------------
 
@@ -84,16 +80,16 @@ data Exp (γ : ℕ) : Set where
 Pi : Nf 0
 Pi = `Π `Type (`x 0 `→ `Type) `→ `Type
 
-Π` : Nf 0
-Π` = `λ (`λ (`Π (`x 1) (`neut (`xᴺ 1 `∙ `x 0))))
+Π' : Nf 0
+Π' = `λ (`λ (`Π (`x 1) (`neut (`xᴺ 1 `∙ `x 0))))
 
-Prelude : ℕ
-Prelude = 2
+Prim : ℕ
+Prim = 2
 
 ----------------------------------------------------------------------
 
-prelude : Env 0 Prelude
-prelude = Π` ∷ `Type ∷ []
+prelude : Env 0 Prim
+prelude = Π' ∷ `Type ∷ []
 
 ----------------------------------------------------------------------
 
@@ -102,8 +98,8 @@ norm (`λ b) = `λ (norm b)
 norm (`var i) = `neut (`var i)
 norm (f `∙ a) = norm f ∙ norm a 
 
-delta : Exp Prelude → Nf 0
-delta = hsub prelude ∘ norm
+prim-norm : Exp Prim → Nf 0
+prim-norm = hsub prelude ∘ norm
 
 ----------------------------------------------------------------------
 
