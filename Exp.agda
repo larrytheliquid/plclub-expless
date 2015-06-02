@@ -17,7 +17,6 @@ data Exp (γ : ℕ) : Set where
   `var : (i : Var γ) → Exp γ
   _`∙_ : (f : Exp γ) (a : Exp γ) → Exp γ
 
-
 ----------------------------------------------------------------------
 
 postulate sub : ∀{γ} → Exp γ → Exp (suc γ) → Exp γ
