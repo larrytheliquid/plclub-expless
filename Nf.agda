@@ -2,13 +2,13 @@ module Nf where
 
 ----------------------------------------------------------------------
 
-postulate undefined : ∀{ℓ} {A : Set ℓ} → A
-
 open import Function
 open import Data.Nat
 open import Data.Fin hiding ( lift ) renaming ( Fin to Var; zero to here; suc to there )
 open import Relation.Nullary.Decidable using ( True )
 open import Data.Vec
+
+open import Prelude
 
 ----------------------------------------------------------------------
 
@@ -17,8 +17,8 @@ data Ne (γ : ℕ) : Set
 
 data Nf γ where
   `Type : Nf γ
-  `Π : (A : Nf γ) (B : Nf (suc γ)) → Nf γ
-  `λ : (b : Nf (suc γ)) → Nf γ
+  `Π : (A : Nf γ) (B : Bind Nf γ) → Nf γ
+  `λ : (b : Bind Nf γ) → Nf γ
   `[_] : Ne γ → Nf γ
 
 data Ne γ where
@@ -38,7 +38,7 @@ postulate
 
 infixr 3 _`→_
 _`→_ : ∀{γ} (A B : Nf γ) → Nf γ
-A `→ B = `Π A (wkn B)
+A `→ B = `Π A `∣ wkn B ∣
 
 ----------------------------------------------------------------------
 
@@ -57,14 +57,17 @@ lift σ = `x 0 ∷ map wkn σ
 hsub : ∀{φ γ} → Env φ γ → Nf γ → Nf φ
 hsubᴺ : ∀{φ γ} → Env φ γ → Ne γ → Nf φ
 
+hsubᴮ : ∀{φ γ} → Env φ γ → Bind Nf γ → Bind Nf φ
+hsubᴮ σ `∣ b ∣ = `∣ hsub (lift σ) b ∣
+
 _∙_ : ∀{γ} → Nf γ → Nf γ → Nf γ
-`λ b ∙ a = hsub (a ∷ idEnv) b
+`λ `∣ b ∣ ∙ a = hsub (a ∷ idEnv) b
 `[ f ] ∙ a = `[ f `∙ a ]
 f ∙ a = undefined
 
 hsub σ `Type = `Type
-hsub σ (`Π A B) = `Π (hsub σ A) (hsub (lift σ) B)
-hsub σ (`λ b) = `λ (hsub (lift σ) b)
+hsub σ (`Π A B) = `Π (hsub σ A) (hsubᴮ σ B)
+hsub σ (`λ b) = `λ (hsubᴮ σ b)
 hsub σ `[ a ] = hsubᴺ σ a
 
 hsubᴺ σ (`var i) = lookup i σ
@@ -73,17 +76,17 @@ hsubᴺ σ (f `∙ a) = hsubᴺ σ f ∙ hsub σ a
 ----------------------------------------------------------------------
 
 data Exp (γ : ℕ) : Set where
-  `λ : (b : Exp (suc γ)) → Exp γ
+  `λ : (b : Bind Exp γ) → Exp γ
   `var : (i : Var γ) → Exp γ
   _`∙_ : (f : Exp γ) (a : Exp γ) → Exp γ
 
 ----------------------------------------------------------------------
 
 Pi : Nf 0
-Pi = `Π `Type (`x 0 `→ `Type) `→ `Type
+Pi = `Π `Type `∣ `x 0 `→ `Type ∣ `→ `Type
 
 Π' : Nf 0
-Π' = `λ (`λ (`Π (`x 1) (`[ `xᴺ 1 `∙ `x 0 ])))
+Π' = `λ `∣ `λ `∣ `Π (`x 1) `∣ `[ `xᴺ 1 `∙ `x 0 ] ∣ ∣ ∣
 
 Prim : ℕ
 Prim = 2
@@ -96,7 +99,11 @@ prelude = Π' ∷ `Type ∷ []
 ----------------------------------------------------------------------
 
 norm : ∀{γ} → Exp γ → Nf γ
-norm (`λ b) = `λ (norm b)
+
+normᴮ : ∀{γ} → Bind Exp γ → Bind Nf γ
+normᴮ `∣ b ∣ = `∣ norm b ∣
+
+norm (`λ b) = `λ (normᴮ b)
 norm (`var i) = `[ `var i ]
 norm (f `∙ a) = norm f ∙ norm a 
 
