@@ -21,15 +21,18 @@ data Exp (γ : ℕ) : Set where
 
 ----------------------------------------------------------------------
 
-postulate sub : ∀{γ} → Exp γ → Bind Exp γ → Exp γ
+postulate sub : ∀{γ} → Exp γ → Exp (suc γ) → Exp γ
 
 ----------------------------------------------------------------------
 
 {-# NO_TERMINATION_CHECK #-}
 wh-norm : ∀{γ} → Exp γ → Exp γ
 
+_∙ᴮ_ : ∀{γ} → Bind Exp γ → Exp γ → Exp γ
+`∣ b ∣ ∙ᴮ a = wh-norm (sub a b)
+
 _∙_ : ∀{γ} → Exp γ → Exp γ → Exp γ
-`λ b ∙ a = wh-norm (sub a b)
+`λ b ∙ a = b ∙ᴮ a
 f ∙ a = f `∙ a
 
 wh-norm `Type = `Type

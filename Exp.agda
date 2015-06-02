@@ -21,7 +21,7 @@ data Exp (γ : ℕ) : Set where
 
 ----------------------------------------------------------------------
 
-postulate sub : ∀{γ} → Exp γ → Bind Exp γ → Exp γ
+postulate sub : ∀{γ} → Exp γ → Exp (suc γ) → Exp γ
 
 ----------------------------------------------------------------------
 
@@ -31,8 +31,11 @@ norm : ∀{γ} → Exp γ → Exp γ
 normᴮ : ∀{γ} → Bind Exp γ → Bind Exp γ
 normᴮ `∣ b ∣ = `∣ norm b ∣
 
+_∙ᴮ_ : ∀{γ} → Bind Exp γ → Exp γ → Exp γ
+`∣ b ∣ ∙ᴮ a = norm (sub a b)
+
 _∙_ : ∀{γ} → Exp γ → Exp γ → Exp γ
-`λ b ∙ a = norm (sub a b)
+`λ b ∙ a = b ∙ᴮ a
 f ∙ a = f `∙ a
 
 norm `Type = `Type
