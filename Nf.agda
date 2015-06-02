@@ -7,13 +7,12 @@ postulate undefined : {A : Set} → A
 open import Function
 open import Data.Nat
 open import Data.Fin hiding ( lift ) renaming ( Fin to Var; zero to here; suc to there )
+open import Relation.Nullary.Decidable using ( True )
 open import Data.Vec
 
 -- infixr 5 _▹_
 -- _▹_ : ∀{ℓ n} {A : Set ℓ} (xs : Vec A n) (x : A) → Vec A (suc n)
 -- xs ▹ x = x ∷ xs
-
-pattern _▹_ xs x = x ∷ xs
 
 ----------------------------------------------------------------------
 
@@ -48,11 +47,11 @@ A `→ B = `Π A (wkn B)
 
 ----------------------------------------------------------------------
 
--- `xᴺ : ∀{γ} → Ne (suc γ)
--- `xᴺ = `var here
+`xᴺ : ∀ γ {δ} {γ<δ : True (suc γ ≤? δ)} → Ne δ
+`xᴺ γ {γ<δ = γ<δ} = `var (#_ γ {m<n = γ<δ})
 
--- `x : ∀{γ} → ℕ → Nf (suc γ)
--- `x = `neut `xᴺ
+`x : ∀ γ {δ} {γ<δ : True (suc γ ≤? δ)} → Nf δ
+`x γ {γ<δ = γ<δ} = `neut (`xᴺ γ {γ<δ = γ<δ})
 
 ----------------------------------------------------------------------
 
@@ -83,10 +82,10 @@ data Exp (γ : ℕ) : Set where
 ----------------------------------------------------------------------
 
 Pi : Nf 0
-Pi = `Π `Type (`neut (`var (# 0)) `→ `Type) `→ `Type
+Pi = `Π `Type (`x 0 `→ `Type) `→ `Type
 
 Π` : Nf 0
-Π` = `λ (`λ (`Π (`neut (`var (# 1))) (`neut (`var (# 1) `∙ `neut (`var (# 0))))))
+Π` = `λ (`λ (`Π (`x 1) (`neut (`xᴺ 1 `∙ `x 0))))
 
 Prelude : ℕ
 Prelude = 2
