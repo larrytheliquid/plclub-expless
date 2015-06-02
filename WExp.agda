@@ -24,31 +24,31 @@ postulate sub : ∀{γ} → Exp γ → Exp (suc γ) → Exp γ
 ----------------------------------------------------------------------
 
 {-# NO_TERMINATION_CHECK #-}
-whnf : ∀{γ} → Exp γ → Exp γ
+wh-norm : ∀{γ} → Exp γ → Exp γ
 
 _∙_ : ∀{γ} → Exp γ → Exp γ → Exp γ
-`λ b ∙ a = whnf (sub a b)
+`λ b ∙ a = wh-norm (sub a b)
 f ∙ a = f `∙ a
 
-whnf `Type = `Type
-whnf (`Π A B) = `Π (whnf A) B
-whnf (`λ b) = `λ b
-whnf (`var i) = `var i
-whnf (f `∙ a) = whnf f ∙ whnf a
+wh-norm `Type = `Type
+wh-norm (`Π A B) = `Π (wh-norm A) B
+wh-norm (`λ b) = `λ b
+wh-norm (`var i) = `var i
+wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a
 
 ----------------------------------------------------------------------
 
 {-# NO_TERMINATION_CHECK #-}
-force : ∀{γ} → Exp γ → Exp γ -- WHNF as input
+force : ∀{γ} → Exp γ → Exp γ -- WH-NORM as input
 force `Type = `Type
-force (`Π A B) = `Π (force A) (force (whnf B))
-force (`λ b) = `λ (force (whnf b))
+force (`Π A B) = `Π (force A) (force (wh-norm B))
+force (`λ b) = `λ (force (wh-norm b))
 force (`var i) = `var i
 force (f `∙ a) = force f `∙ force a
 
 ----------------------------------------------------------------------
 
 norm : ∀{γ} → Exp γ → Exp γ
-norm = force ∘ whnf
+norm = force ∘ wh-norm
 
 ----------------------------------------------------------------------
