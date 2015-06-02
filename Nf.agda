@@ -2,115 +2,108 @@ module Nf where
 
 ----------------------------------------------------------------------
 
+postulate undefined : {A : Set} → A
+
 open import Function
-open import Type
+open import Data.Nat
+open import Data.Fin hiding ( lift ) renaming ( Fin to Var; zero to here; suc to there )
+open import Data.Vec
+
+-- infixr 5 _▹_
+-- _▹_ : ∀{ℓ n} {A : Set ℓ} (xs : Vec A n) (x : A) → Vec A (suc n)
+-- xs ▹ x = x ∷ xs
+
+pattern _▹_ xs x = x ∷ xs
 
 ----------------------------------------------------------------------
 
-data Nf (Γ : Ctx) : Type → Set
-data Neut (Γ : Ctx) : Type → Set
+data Nf (γ : ℕ) : Set
+data Ne (γ : ℕ) : Set
 
-data Nf Γ where
-  `true `false : Nf Γ `Bool
-  `λ : ∀{A B} (b : Nf (Γ , A) B) → Nf Γ (A `→ B)
-  `neut : ∀{A} → Neut Γ A → Nf Γ A
+data Nf γ where
+  `Type : Nf γ
+  `Π : (A : Nf γ) (B : Nf (suc γ)) → Nf γ
+  `λ : (b : Nf (suc γ)) → Nf γ
+  `neut : Ne γ → Nf γ
 
-data Neut Γ where
-  `var : ∀{A} (i : Var Γ A) → Neut Γ A
-  _`∙_ : ∀{A B} (f : Neut Γ (A `→ B)) (a : Nf Γ A) → Neut Γ B
-  `¬_ : (b : Neut Γ `Bool) → Neut Γ `Bool
-  _`∧_ : (b : Neut Γ `Bool) (b' : Nf Γ `Bool) → Neut Γ `Bool
+data Ne γ where
+  `var : (i : Var γ) → Ne γ
+  _`∙_ : (f : Ne γ) (a : Nf γ) → Ne γ
 
 ----------------------------------------------------------------------
 
-data Env (Φ : Ctx) : Ctx → Set where
-  ∅ : Env Φ ∅
-  _,_ : ∀{Γ A} → Env Φ Γ → Nf Φ A → Env Φ (Γ , A)
+Env : ℕ → ℕ → Set
+Env φ = Vec (Nf φ)
 
 postulate
-  lift : ∀{Φ Γ A} → Env Φ Γ → Env (Φ , A) (Γ , A)
-  idEnv : ∀{Γ} → Env Γ Γ
-  lookup : ∀{Φ Γ A} → Env Φ Γ → Var Γ A → Nf Φ A
+  wkn : ∀{γ} → Nf γ → Nf (suc γ)
+  lift : ∀{φ γ} → Env φ γ → Env (suc φ) (suc γ)
+  idEnv : ∀{γ} → Env γ γ
 
 ----------------------------------------------------------------------
 
-¬_ : ∀{Γ} → Nf Γ `Bool → Nf Γ `Bool
-¬ `true = `false
-¬ `false = `true
-¬ `neut b = `neut (`¬ b)
+infixr 3 _`→_
+_`→_ : ∀{γ} (A B : Nf γ) → Nf γ
+A `→ B = `Π A (wkn B)
 
-_∧_ : ∀{Γ} → Nf Γ `Bool → Nf Γ `Bool → Nf Γ `Bool
-`true ∧ b' = b'
-`false ∧ b' = `false
-`neut b ∧ b' = `neut (b `∧ b')
+----------------------------------------------------------------------
+
+-- `xᴺ : ∀{γ} → Ne (suc γ)
+-- `xᴺ = `var here
+
+-- `x : ∀{γ} → ℕ → Nf (suc γ)
+-- `x = `neut `xᴺ
 
 ----------------------------------------------------------------------
 
 {-# NO_TERMINATION_CHECK #-}
-hsub : ∀{Φ Γ A} → Env Φ Γ → Nf Γ A → Nf Φ A
-hsubᴺ : ∀{Φ Γ A} → Env Φ Γ → Neut Γ A → Nf Φ A
+hsub : ∀{φ γ} → Env φ γ → Nf γ → Nf φ
+hsubᴺ : ∀{φ γ} → Env φ γ → Ne γ → Nf φ
 
-_∙_ : ∀{Γ A B} → Nf Γ (A `→ B) → Nf Γ A → Nf Γ B
-`λ b ∙ a = hsub (idEnv , a) b
+_∙_ : ∀{γ} → Nf γ → Nf γ → Nf γ
+`λ b ∙ a = hsub (a ∷ idEnv) b
 `neut f ∙ a = `neut (f `∙ a)
+f ∙ a = undefined
 
-hsub σ `true = `true
-hsub σ `false = `false
+hsub σ `Type = `Type
+hsub σ (`Π A B) = `Π (hsub σ A) (hsub (lift σ) B)
 hsub σ (`λ b) = `λ (hsub (lift σ) b)
 hsub σ (`neut a) = hsubᴺ σ a
 
-hsubᴺ σ (`var i) = lookup σ i
+hsubᴺ σ (`var i) = lookup i σ
 hsubᴺ σ (f `∙ a) = hsubᴺ σ f ∙ hsub σ a
-hsubᴺ σ (`¬ b) = ¬ hsubᴺ σ b
-hsubᴺ σ (b `∧ b') = hsubᴺ σ b ∧ hsub σ b'
 
 ----------------------------------------------------------------------
 
-data Exp (Γ : Ctx) : Type → Set where
-  `λ : ∀{A B} (b : Exp (Γ , A) B) → Exp Γ (A `→ B)
-  `var : ∀{A} (i : Var Γ A) → Exp Γ A
-  _`∙_ : ∀{A B} (f : Exp Γ (A `→ B)) (a : Exp Γ A) → Exp Γ B
-
-True : Type
-True = `Bool
-
-False : Type
-False = `Bool
-
-Not : Type
-Not = `Bool `→ `Bool
-
-And : Type
-And = `Bool `→ `Bool `→ `Bool
-
-Prelude : Ctx
-Prelude = ∅ , True , False , Not , And
+data Exp (γ : ℕ) : Set where
+  `λ : (b : Exp (suc γ)) → Exp γ
+  `var : (i : Var γ) → Exp γ
+  _`∙_ : (f : Exp γ) (a : Exp γ) → Exp γ
 
 ----------------------------------------------------------------------
 
-true` : Nf ∅ True
-true` = `true
+Pi : Nf 0
+Pi = `Π `Type (`neut (`var (# 0)) `→ `Type) `→ `Type
 
-false` : Nf ∅ False
-false` = `false
+Π` : Nf 0
+Π` = `λ (`λ (`Π (`neut (`var (# 1))) (`neut (`var (# 1) `∙ `neut (`var (# 0))))))
 
-¬`_ : Nf ∅ Not
-¬`_ = `λ (`neut (`¬ `var here))
-
-_∧`_ : Nf ∅ And
-_∧`_ = `λ (`λ (`neut (`var (there here) `∧ `neut (`var here))))
-
-prelude : Env ∅ Prelude
-prelude = ∅ , true` , false` , ¬`_ , _∧`_
+Prelude : ℕ
+Prelude = 2
 
 ----------------------------------------------------------------------
 
-norm : ∀{Γ A} → Exp Γ A → Nf Γ A
+prelude : Env 0 Prelude
+prelude = Π` ∷ `Type ∷ []
+
+----------------------------------------------------------------------
+
+norm : ∀{γ} → Exp γ → Nf γ
 norm (`λ b) = `λ (norm b)
 norm (`var i) = `neut (`var i)
 norm (f `∙ a) = norm f ∙ norm a 
 
-delta : ∀{A} → Exp Prelude A → Nf ∅ A
+delta : Exp Prelude → Nf 0
 delta = hsub prelude ∘ norm
 
 ----------------------------------------------------------------------
