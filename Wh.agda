@@ -13,7 +13,7 @@ open import Data.Vec
 ----------------------------------------------------------------------
 
 data Wh (γ : ℕ) : Set
-data Ne (γ : ℕ) : Set
+data Nu (γ : ℕ) : Set
 
 Env : ℕ → ℕ → Set
 Env φ = Vec (Wh φ)
@@ -31,17 +31,16 @@ data Wh γ where
   `Type : Wh γ
   `Π : (A : Wh γ) (B : Bind γ) → Wh γ
   `λ : (b : Bind γ) → Wh γ
-  `[_] : Ne γ → Wh γ
+  `[_] : Nu γ → Wh γ
 
-data Ne γ where
-  `var : (i : Var γ) → Ne γ
-  _`∙_ : (f : Ne γ) (a : Wh γ) → Ne γ
+data Nu γ where
+  `var : (i : Var γ) → Nu γ
+  _`∙_ : (f : Nu γ) (a : Wh γ) → Nu γ
 
 ----------------------------------------------------------------------
 
 postulate
   wkn : ∀{γ} → Wh γ → Wh (suc γ)
-  lift : ∀{φ γ} → Env φ γ → Env (suc φ) (suc γ)
   idEnv : ∀{γ} → Env γ γ
 
 ----------------------------------------------------------------------
@@ -55,17 +54,20 @@ A `→ B = `Π A `∣ wkn B ∣
 
 ----------------------------------------------------------------------
 
-`xᴺ : ∀ γ {δ} {γ<δ : True (suc γ ≤? δ)} → Ne δ
+`xᴺ : ∀ γ {δ} {γ<δ : True (suc γ ≤? δ)} → Nu δ
 `xᴺ γ {γ<δ = γ<δ} = `var (#_ γ {m<n = γ<δ})
 
 `x : ∀ γ {δ} {γ<δ : True (suc γ ≤? δ)} → Wh δ
 `x γ {γ<δ = γ<δ} = `[ `xᴺ γ {γ<δ = γ<δ} ]
 
+lift : ∀{φ γ} → Env φ γ → Env (suc φ) (suc γ)
+lift σ = `x 0 ∷ map wkn σ
+
 ----------------------------------------------------------------------
 
 {-# NO_TERMINATION_CHECK #-}
 wh-hsub : ∀{φ γ} → Env φ γ → Wh γ → Wh φ
-wh-hsubᴺ : ∀{φ γ} → Env φ γ → Ne γ → Wh φ
+wh-hsubᴺ : ∀{φ γ} → Env φ γ → Nu γ → Wh φ
 
 wh-hsubᴮ : ∀{φ γ} → Env φ γ → Bind γ → Bind φ
 wh-hsubᴮ σ (ρ `/ b) = map (wh-hsub σ) ρ `/ b
@@ -82,6 +84,38 @@ wh-hsub σ `[ a ] = wh-hsubᴺ σ a
 
 wh-hsubᴺ σ (`var i) = lookup i σ
 wh-hsubᴺ σ (f `∙ a) = wh-hsubᴺ σ f ∙ wh-hsub σ a
+
+----------------------------------------------------------------------
+
+data Nf (γ : ℕ) : Set
+data Ne (γ : ℕ) : Set
+
+data Nf γ where
+  `Type : Nf γ
+  `Π : (A : Nf γ) (B : Nf (suc γ)) → Nf γ
+  `λ : (b : Nf (suc γ)) → Nf γ
+  `[_] : Ne γ → Nf γ
+
+data Ne γ where
+  `var : (i : Var γ) → Ne γ
+  _`∙_ : (f : Ne γ) (a : Nf γ) → Ne γ
+
+----------------------------------------------------------------------
+
+{-# NO_TERMINATION_CHECK #-}
+force : ∀{γ} → Wh γ → Nf γ
+forceᴺ : ∀{γ} → Nu γ → Ne γ
+
+forceᴮ : ∀{γ} → Bind γ → Nf (suc γ)
+forceᴮ (σ `/ a) = force (wh-hsub (lift σ) a)
+
+force `Type = `Type
+force (`Π A B) = `Π (force A) (forceᴮ B)
+force (`λ b) = `λ (forceᴮ b)
+force `[ a ] = `[ forceᴺ a ]
+
+forceᴺ (`var i) = `var i
+forceᴺ (f `∙ a) = forceᴺ f `∙ force a
 
 ----------------------------------------------------------------------
 
@@ -108,13 +142,19 @@ prelude = Π' ∷ `Type ∷ []
 
 ----------------------------------------------------------------------
 
-norm : ∀{γ} → Exp γ → Wh γ
-norm (`λ b) = `λ `∣ norm b ∣
-norm (`var i) = `[ `var i ]
-norm (f `∙ a) = norm f ∙ norm a 
+wh-norm : ∀{γ} → Exp γ → Wh γ
+wh-norm (`λ b) = `λ `∣ wh-norm b ∣
+wh-norm (`var i) = `[ `var i ]
+wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a 
 
-prim-norm : Exp Prim → Wh 0
-prim-norm = wh-hsub prelude ∘ norm
+prim-wh-norm : Exp Prim → Wh 0
+prim-wh-norm = wh-hsub prelude ∘ wh-norm
+
+norm : ∀{γ} → Exp γ → Nf γ
+norm = force ∘ wh-norm
+
+prim-norm : Exp Prim → Nf 0
+prim-norm = force ∘ prim-wh-norm
 
 ----------------------------------------------------------------------
 
