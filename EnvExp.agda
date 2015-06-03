@@ -105,12 +105,15 @@ data Ne γ where
 
 ----------------------------------------------------------------------
 
+!_ : ∀{γ} → Close Wh Exp γ → Wh (suc γ)
+! (σ `/ b) = eval (lift σ) b
+
 {-# NO_TERMINATION_CHECK #-}
 force : ∀{γ} → Wh γ → Nf γ
 forceᴺ : ∀{γ} → Nu γ → Ne γ
 
 forceᴷ : ∀{γ} → Close Wh Exp γ → Bind Nf γ
-forceᴷ (σ `/ a) = `∣ force (eval (lift σ) a) ∣
+forceᴷ b = `∣ force (! b) ∣
 
 force `Type = `Type
 force (`Π A B) = `Π (force A) (forceᴷ B)

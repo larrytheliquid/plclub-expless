@@ -3,10 +3,15 @@ module Nf where
 ----------------------------------------------------------------------
 
 open import Function
+open import Data.Bool
 open import Data.Nat
 open import Data.Fin hiding ( lift ) renaming ( Fin to Var; zero to here; suc to there )
 open import Relation.Nullary.Decidable using ( True )
 open import Data.Vec hiding ( _>>=_ )
+open import Data.Maybe hiding ( map )
+open import Category.Monad
+import Level
+
 
 open import Prelude
 
@@ -114,11 +119,6 @@ prim-norm : Exp Prim → Nf 0
 prim-norm = hsub prelude ∘ norm
 
 ----------------------------------------------------------------------
-
-open import Data.Bool
-open import Data.Maybe
-open import Category.Monad
-import Level
 
 postulate
   Ctx : ℕ → Set

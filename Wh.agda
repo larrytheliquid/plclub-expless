@@ -3,10 +3,14 @@ module Wh where
 ----------------------------------------------------------------------
 
 open import Function
+open import Data.Bool
 open import Data.Nat
 open import Data.Fin hiding ( lift ) renaming ( Fin to Var; zero to here; suc to there )
 open import Relation.Nullary.Decidable using ( True )
-open import Data.Vec
+open import Data.Vec hiding ( _>>=_ )
+open import Data.Maybe hiding ( map )
+open import Category.Monad
+import Level
 
 open import Prelude
 
@@ -98,12 +102,15 @@ data Ne γ where
 
 ----------------------------------------------------------------------
 
+!_ : ∀{γ} → Close Wh Wh γ → Wh (suc γ)
+! (σ `/ b) = wh-hsub (lift σ) b
+
 {-# NO_TERMINATION_CHECK #-}
 force : ∀{γ} → Wh γ → Nf γ
 forceᴺ : ∀{γ} → Nu γ → Ne γ
 
 forceᴷ : ∀{γ} → Close Wh Wh γ → Bind Nf γ
-forceᴷ (σ `/ a) = `∣ force (wh-hsub (lift σ) a) ∣
+forceᴷ b = `∣ force (! b) ∣
 
 force `Type = `Type
 force (`Π A B) = `Π (force A) (forceᴷ B)
@@ -155,6 +162,48 @@ norm = force ∘ wh-norm
 
 prim-norm : Exp Prim → Nf 0
 prim-norm = force ∘ prim-wh-norm
+
+----------------------------------------------------------------------
+
+postulate
+  _==_ : ∀{γ} → Close Wh Wh γ → Close Wh Wh γ → Bool
+  _==ᴿ_ : ∀{γ} → Var γ → Var γ → Bool
+
+----------------------------------------------------------------------
+
+{-# NO_TERMINATION_CHECK #-}
+_≈_ : ∀{γ} → Wh γ → Wh γ → Bool
+_≈ᴺ_ : ∀{γ} → Nu γ → Nu γ → Bool
+
+_≈ᴷ_ : ∀{γ} → Close Wh Wh γ → Close Wh Wh γ → Bool
+b₁ ≈ᴷ b₂ = b₁ == b₂ ∨ (! b₁) ≈ (! b₂)
+
+`Type ≈ `Type = true
+`Π A₁ B₁ ≈ `Π A₂ B₂ = A₁ ≈ A₂ ∧ B₁ ≈ᴷ B₂
+`λ b₁ ≈ `λ b₂ = b₁ ≈ᴷ b₂
+`[ a₁ ] ≈ `[ a₂ ] = a₁ ≈ᴺ a₂
+_ ≈ _ = false
+
+(f₁ `∙ a₁) ≈ᴺ (f₂ `∙ a₂) = (f₁ ≈ᴺ f₂) ∧ a₁ ≈ a₂
+`var i ≈ᴺ `var j = i ==ᴿ j
+_ ≈ᴺ _ = false
+
+----------------------------------------------------------------------
+
+postulate Ctx : ℕ → Set
+
+open RawMonad {Level.zero} monad
+
+infer : ∀{γ} → Ctx γ → Exp γ → Maybe (Wh γ)
+infer Γ (f `∙ a) =
+  infer Γ a >>= λ A →
+  infer Γ f >>= λ
+  { (`Π A' B) →
+    if A ≈ A'
+    then return (B ∙ᴷ wh-norm a)
+    else nothing
+  ; _ → nothing }
+infer Γ a = undefined
 
 ----------------------------------------------------------------------
 
