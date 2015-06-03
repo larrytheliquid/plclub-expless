@@ -140,8 +140,8 @@ Prim = 2
 
 ----------------------------------------------------------------------
 
-prelude : Env 0 Prim
-prelude = Π' ∷ `Type ∷ []
+prim : Env 0 Prim
+prim = Π' ∷ `Type ∷ []
 
 ----------------------------------------------------------------------
 
@@ -155,7 +155,7 @@ wh-norm (`var i) = `[ `var i ]
 wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a 
 
 prim-wh-norm : Exp Prim → Wh 0
-prim-wh-norm = wh-hsub prelude ∘ wh-norm
+prim-wh-norm = wh-hsub prim ∘ wh-norm
 
 norm : ∀{γ} → Exp γ → Nf γ
 norm = force ∘ wh-norm

@@ -101,8 +101,8 @@ Prim = 2
 
 ----------------------------------------------------------------------
 
-prelude : Env 0 Prim
-prelude = Π' ∷ `Type ∷ []
+prim : Env 0 Prim
+prim = Π' ∷ `Type ∷ []
 
 ----------------------------------------------------------------------
 
@@ -116,7 +116,7 @@ norm (`var i) = `[ `var i ]
 norm (f `∙ a) = norm f ∙ norm a 
 
 prim-norm : Exp Prim → Nf 0
-prim-norm = hsub prelude ∘ norm
+prim-norm = hsub prim ∘ norm
 
 ----------------------------------------------------------------------
 

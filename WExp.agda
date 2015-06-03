@@ -32,6 +32,9 @@ postulate sub : ∀{γ} → Exp γ → Exp (suc γ) → Exp γ
 {-# NO_TERMINATION_CHECK #-}
 wh-norm : ∀{γ} → Exp γ → Exp γ
 
+wh-normᴮ : ∀{γ} → Bind Exp γ → Bind Exp γ
+wh-normᴮ b = b
+
 _∙ᴮ_ : ∀{γ} → Bind Exp γ → Exp γ → Exp γ
 `∣ b ∣ ∙ᴮ a = wh-norm (sub a b)
 
@@ -40,8 +43,8 @@ _∙_ : ∀{γ} → Exp γ → Exp γ → Exp γ
 f ∙ a = f `∙ a
 
 wh-norm `Type = `Type
-wh-norm (`Π A B) = `Π (wh-norm A) B
-wh-norm (`λ b) = `λ b
+wh-norm (`Π A B) = `Π (wh-norm A) (wh-normᴮ B)
+wh-norm (`λ b) = `λ (wh-normᴮ b)
 wh-norm (`var i) = `var i
 wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a
 

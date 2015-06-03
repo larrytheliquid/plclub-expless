@@ -130,15 +130,7 @@ forceᴺ (f `∙ a) = forceᴺ f `∙ force a
 ----------------------------------------------------------------------
 
 wh-norm : ∀{γ} → Exp γ → Wh γ
-
-wh-normᴮ : ∀{γ} → Bind Exp γ → Close Wh Exp γ
-wh-normᴮ `∣ b ∣ = ∣ b ∣
-
-wh-norm `Type = `Type
-wh-norm (`Π A B) = `Π (wh-norm A) (wh-normᴮ B)
-wh-norm (`λ b) = `λ (wh-normᴮ b)
-wh-norm (`var i) = `[ `var i ]
-wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a
+wh-norm = eval idEnv
 
 norm : ∀{γ} → Exp γ → Nf γ
 norm = force ∘ wh-norm
