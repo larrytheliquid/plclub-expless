@@ -65,11 +65,11 @@ wh-hsubᴺ : ∀{φ γ} → Env φ γ → Nu γ → Wh φ
 wh-hsubᴷ : ∀{φ γ} → Env φ γ → Close Wh Wh γ → Close Wh Wh φ
 wh-hsubᴷ σ (ρ `/ b) = map (wh-hsub σ) ρ `/ b
 
-_∙ᴮ_ : ∀{γ} → Close Wh Wh γ → Wh γ → Wh γ
-(σ `/ b) ∙ᴮ a = wh-hsub (a ∷ σ) b
+_∙ᴷ_ : ∀{γ} → Close Wh Wh γ → Wh γ → Wh γ
+(σ `/ b) ∙ᴷ a = wh-hsub (a ∷ σ) b
 
 _∙_ : ∀{γ} → Wh γ → Wh γ → Wh γ
-`λ b ∙ a = b ∙ᴮ a
+`λ b ∙ a = b ∙ᴷ a
 `[ f ] ∙ a = `[ f `∙ a ]
 f ∙ a = undefined
 

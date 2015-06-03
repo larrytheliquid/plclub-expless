@@ -19,141 +19,122 @@ data Exp (γ : ℕ) : Set where
   `var : (i : Var γ) → Exp γ
   _`∙_ : (f : Exp γ) (a : Exp γ) → Exp γ
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- data Wh (γ : ℕ) : Set
--- data Nu (γ : ℕ) : Set
+data Wh (γ : ℕ) : Set
+data Nu (γ : ℕ) : Set
 
--- data Wh γ where
---   `Type : Wh γ
---   `Π : (A : Wh γ) (B : Close Wh Wh γ) → Wh γ
---   `λ : (b : Close Wh Wh γ) → Wh γ
---   `[_] : Nu γ → Wh γ
+data Wh γ where
+  `Type : Wh γ
+  `Π : (A : Wh γ) (B : Close Wh Exp γ) → Wh γ
+  `λ : (b : Close Wh Exp γ) → Wh γ
+  `[_] : Nu γ → Wh γ
 
--- data Nu γ where
---   `var : (i : Var γ) → Nu γ
---   _`∙_ : (f : Nu γ) (a : Wh γ) → Nu γ
+data Nu γ where
+  `var : (i : Var γ) → Nu γ
+  _`∙_ : (f : Nu γ) (a : Wh γ) → Nu γ
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- Env : ℕ → ℕ → Set
--- Env φ = Vec (Wh φ)
+Env : ℕ → ℕ → Set
+Env φ = Vec (Wh φ)
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- postulate
---   wkn : ∀{γ} → Wh γ → Wh (suc γ)
---   idEnv : ∀{γ} → Env γ γ
+postulate
+  wkn : ∀{γ} → Exp γ → Exp (suc γ)
+  wknʷ : ∀{γ} → Wh γ → Wh (suc γ)
+  idEnv : ∀{γ} → Env γ γ
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- ∣_∣ : ∀{γ} → Wh (suc γ) → Close Wh Wh γ
--- ∣ a ∣ = idEnv `/ a
+∣_∣ : ∀{γ} → Exp (suc γ) → Close Wh Exp γ
+∣ a ∣ = idEnv `/ a
 
--- infixr 3 _`→_
--- _`→_ : ∀{γ} (A B : Wh γ) → Wh γ
--- A `→ B = `Π A ∣ wkn B ∣
+infixr 3 _`→_
+_`→_ : ∀{γ} (A : Wh γ) (B : Exp γ) → Wh γ
+A `→ B = `Π A ∣ wkn B ∣
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- `xᴺ : ∀ γ {δ} {γ<δ : True (suc γ ≤? δ)} → Nu δ
--- `xᴺ γ {γ<δ = γ<δ} = `var (#_ γ {m<n = γ<δ})
+`xᴺ : ∀ γ {δ} {γ<δ : True (suc γ ≤? δ)} → Nu δ
+`xᴺ γ {γ<δ = γ<δ} = `var (#_ γ {m<n = γ<δ})
 
--- `x : ∀ γ {δ} {γ<δ : True (suc γ ≤? δ)} → Wh δ
--- `x γ {γ<δ = γ<δ} = `[ `xᴺ γ {γ<δ = γ<δ} ]
+`x : ∀ γ {δ} {γ<δ : True (suc γ ≤? δ)} → Wh δ
+`x γ {γ<δ = γ<δ} = `[ `xᴺ γ {γ<δ = γ<δ} ]
 
--- lift : ∀{φ γ} → Env φ γ → Env (suc φ) (suc γ)
--- lift σ = `x 0 ∷ map wkn σ
+lift : ∀{φ γ} → Env φ γ → Env (suc φ) (suc γ)
+lift σ = `x 0 ∷ map wknʷ σ
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- {-# NO_TERMINATION_CHECK #-}
--- wh-hsub : ∀{φ γ} → Env φ γ → Wh γ → Wh φ
--- wh-hsubᴺ : ∀{φ γ} → Env φ γ → Nu γ → Wh φ
+{-# NO_TERMINATION_CHECK #-}
+eval : ∀{φ γ} → Env φ γ → Exp γ → Wh φ
 
--- wh-hsubᴷ : ∀{φ γ} → Env φ γ → Close Wh Wh γ → Close Wh Wh φ
--- wh-hsubᴷ σ (ρ `/ b) = map (wh-hsub σ) ρ `/ b
+evalᴷ : ∀{φ γ} → Env φ γ → Bind Exp γ → Close Wh Exp φ
+evalᴷ σ `∣ b ∣ = σ `/ b
 
--- _∙_ : ∀{γ} → Wh γ → Wh γ → Wh γ
--- `λ (σ `/ b) ∙ a = wh-hsub (a ∷ σ) b
--- `[ f ] ∙ a = `[ f `∙ a ]
--- f ∙ a = undefined
+_∙ᴷ_ : ∀{γ} → Close Wh Exp γ → Wh γ → Wh γ
+(σ `/ b) ∙ᴷ a = eval (a ∷ σ) b
 
--- wh-hsub σ `Type = `Type
--- wh-hsub σ (`Π A B) = `Π (wh-hsub σ A) (wh-hsubᴷ σ B)
--- wh-hsub σ (`λ b) = `λ (wh-hsubᴷ σ b)
--- wh-hsub σ `[ a ] = wh-hsubᴺ σ a
+_∙_ : ∀{γ} → Wh γ → Wh γ → Wh γ
+`λ b ∙ a = b ∙ᴷ a
+`[ f ] ∙ a = `[ f `∙ a ]
+f ∙ a = undefined
 
--- wh-hsubᴺ σ (`var i) = lookup i σ
--- wh-hsubᴺ σ (f `∙ a) = wh-hsubᴺ σ f ∙ wh-hsub σ a
+eval σ `Type = `Type
+eval σ (`Π A B) = `Π (eval σ A) (evalᴷ σ B)
+eval σ (`λ b) = `λ (evalᴷ σ b)
+eval σ (`var i) = lookup i σ
+eval σ (f `∙ a) = eval σ f ∙ eval σ a
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- data Nf (γ : ℕ) : Set
--- data Ne (γ : ℕ) : Set
+data Nf (γ : ℕ) : Set
+data Ne (γ : ℕ) : Set
 
--- data Nf γ where
---   `Type : Nf γ
---   `Π : (A : Nf γ) (B : Bind Nf γ) → Nf γ
---   `λ : (b : Bind Nf γ) → Nf γ
---   `[_] : Ne γ → Nf γ
+data Nf γ where
+  `Type : Nf γ
+  `Π : (A : Nf γ) (B : Bind Nf γ) → Nf γ
+  `λ : (b : Bind Nf γ) → Nf γ
+  `[_] : Ne γ → Nf γ
 
--- data Ne γ where
---   `var : (i : Var γ) → Ne γ
---   _`∙_ : (f : Ne γ) (a : Nf γ) → Ne γ
+data Ne γ where
+  `var : (i : Var γ) → Ne γ
+  _`∙_ : (f : Ne γ) (a : Nf γ) → Ne γ
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- {-# NO_TERMINATION_CHECK #-}
--- force : ∀{γ} → Wh γ → Nf γ
--- forceᴺ : ∀{γ} → Nu γ → Ne γ
+{-# NO_TERMINATION_CHECK #-}
+force : ∀{γ} → Wh γ → Nf γ
+forceᴺ : ∀{γ} → Nu γ → Ne γ
 
--- forceᴷ : ∀{γ} → Close Wh Wh γ → Bind Nf γ
--- forceᴷ (σ `/ a) = `∣ force (wh-hsub (lift σ) a) ∣
+forceᴷ : ∀{γ} → Close Wh Exp γ → Bind Nf γ
+forceᴷ (σ `/ a) = `∣ force (eval (lift σ) a) ∣
 
--- force `Type = `Type
--- force (`Π A B) = `Π (force A) (forceᴷ B)
--- force (`λ b) = `λ (forceᴷ b)
--- force `[ a ] = `[ forceᴺ a ]
+force `Type = `Type
+force (`Π A B) = `Π (force A) (forceᴷ B)
+force (`λ b) = `λ (forceᴷ b)
+force `[ a ] = `[ forceᴺ a ]
 
--- forceᴺ (`var i) = `var i
--- forceᴺ (f `∙ a) = forceᴺ f `∙ force a
+forceᴺ (`var i) = `var i
+forceᴺ (f `∙ a) = forceᴺ f `∙ force a
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- Pi : Wh 0
--- Pi = `Π `Type ∣ `x 0 `→ `Type ∣ `→ `Type
+wh-norm : ∀{γ} → Exp γ → Wh γ
 
--- Π' : Wh 0
--- Π' = `λ ∣ `λ ∣ `Π (`x 1) ∣ `[ `xᴺ 1 `∙ `x 0 ] ∣ ∣ ∣
+wh-normᴮ : ∀{γ} → Bind Exp γ → Close Wh Exp γ
+wh-normᴮ `∣ b ∣ = ∣ b ∣
 
--- Prim : ℕ
--- Prim = 2
+wh-norm `Type = `Type
+wh-norm (`Π A B) = `Π (wh-norm A) (wh-normᴮ B)
+wh-norm (`λ b) = `λ (wh-normᴮ b)
+wh-norm (`var i) = `[ `var i ]
+wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a
 
--- ----------------------------------------------------------------------
+norm : ∀{γ} → Exp γ → Nf γ
+norm = force ∘ wh-norm
 
--- prelude : Env 0 Prim
--- prelude = Π' ∷ `Type ∷ []
-
--- ----------------------------------------------------------------------
-
--- wh-norm : ∀{γ} → Exp γ → Wh γ
-
--- wh-normᴮ : ∀{γ} → Bind Exp γ → Close Wh Wh γ
--- wh-normᴮ `∣ b ∣ = ∣ wh-norm b ∣
-
--- wh-norm (`λ b) = `λ (wh-normᴮ b)
--- wh-norm (`var i) = `[ `var i ]
--- wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a 
-
--- prim-wh-norm : Exp Prim → Wh 0
--- prim-wh-norm = wh-hsub prelude ∘ wh-norm
-
--- norm : ∀{γ} → Exp γ → Nf γ
--- norm = force ∘ wh-norm
-
--- prim-norm : Exp Prim → Nf 0
--- prim-norm = force ∘ prim-wh-norm
-
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 

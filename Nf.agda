@@ -60,11 +60,11 @@ hsubᴺ : ∀{φ γ} → Env φ γ → Ne γ → Nf φ
 hsubᴮ : ∀{φ γ} → Env φ γ → Bind Nf γ → Bind Nf φ
 hsubᴮ σ `∣ b ∣ = `∣ hsub (lift σ) b ∣
 
-_∙ᴮ_ : ∀{γ} → Bind Nf γ → Nf γ → Nf γ
-`∣ b ∣ ∙ᴮ a = hsub (a ∷ idEnv) b
+_∙ᴷ_ : ∀{γ} → Bind Nf γ → Nf γ → Nf γ
+`∣ b ∣ ∙ᴷ a = hsub (a ∷ idEnv) b
 
 _∙_ : ∀{γ} → Nf γ → Nf γ → Nf γ
-`λ b ∙ a = b ∙ᴮ a
+`λ b ∙ a = b ∙ᴷ a
 `[ f ] ∙ a = `[ f `∙ a ]
 f ∙ a = undefined
 
@@ -132,7 +132,7 @@ infer Γ (f `∙ a) =
   infer Γ f >>= λ
   { (`Π A' B) →
     if A == A'
-    then return (B ∙ᴮ norm a)
+    then return (B ∙ᴷ norm a)
     else nothing
   ; _ → nothing }
 infer Γ a = undefined
