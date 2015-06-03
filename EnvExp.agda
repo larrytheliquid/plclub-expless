@@ -3,10 +3,14 @@ module EnvExp where
 ----------------------------------------------------------------------
 
 open import Function
+open import Data.Bool
 open import Data.Nat
 open import Data.Fin hiding ( lift ) renaming ( Fin to Var; zero to here; suc to there )
 open import Relation.Nullary.Decidable using ( True )
-open import Data.Vec
+open import Data.Vec hiding ( _>>=_ )
+open import Data.Maybe hiding ( map )
+open import Category.Monad
+import Level
 
 open import Prelude
 
@@ -138,6 +142,25 @@ wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a
 
 norm : ∀{γ} → Exp γ → Nf γ
 norm = force ∘ wh-norm
+
+----------------------------------------------------------------------
+
+postulate
+  Ctx : ℕ → Set
+  _==_ : ∀{γ} → Nf γ → Nf γ → Bool
+
+open RawMonad {Level.zero} monad
+
+infer : ∀{γ} → Ctx γ → Exp γ → Maybe (Wh γ)
+infer Γ (f `∙ a) =
+  infer Γ a >>= λ A →
+  infer Γ f >>= λ
+  { (`Π A' B) →
+    if force A == force A'
+    then return (B ∙ᴷ wh-norm a)
+    else nothing
+  ; _ → nothing }
+infer Γ a = undefined
 
 ----------------------------------------------------------------------
 

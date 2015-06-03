@@ -3,10 +3,14 @@ module Exp where
 ----------------------------------------------------------------------
 
 open import Function
+open import Data.Bool
 open import Data.Nat
 open import Data.Fin hiding ( lift ) renaming ( Fin to Var; zero to here; suc to there )
 open import Relation.Nullary.Decidable using ( True )
-open import Data.Vec
+open import Data.Vec hiding ( _>>=_ )
+open import Data.Maybe hiding ( map )
+open import Category.Monad
+import Level
 
 open import Prelude
 
@@ -43,5 +47,24 @@ norm (`Π A B) = `Π (norm A) (normᴮ B)
 norm (`λ b) = `λ (normᴮ b)
 norm (`var i) = `var i
 norm (f `∙ a) = norm f ∙ norm a
+
+----------------------------------------------------------------------
+
+postulate
+  Ctx : ℕ → Set
+  _==_ : ∀{γ} → Exp γ → Exp γ → Bool
+
+open RawMonad {Level.zero} monad
+
+infer : ∀{γ} → Ctx γ → Exp γ → Maybe (Exp γ)
+infer Γ (f `∙ a) =
+  infer Γ a >>= λ A →
+  infer Γ f >>= λ
+  { (`Π A' B) →
+    if A == A'
+    then return (B ∙ᴮ a)
+    else nothing
+  ; _ → nothing }
+infer Γ a = undefined
 
 ----------------------------------------------------------------------
