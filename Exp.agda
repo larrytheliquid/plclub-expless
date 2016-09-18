@@ -29,7 +29,7 @@ postulate sub : ∀{γ} → Exp γ → Exp (suc γ) → Exp γ
 
 ----------------------------------------------------------------------
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 norm : ∀{γ} → Exp γ → Exp γ
 
 normᴮ : ∀{γ} → Bind Exp γ → Bind Exp γ

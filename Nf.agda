@@ -58,7 +58,7 @@ A `→ B = `Π A `∣ wkn B ∣
 lift : ∀{φ γ} → Env φ γ → Env (suc φ) (suc γ)
 lift σ = `x 0 ∷ map wkn σ
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 hsub : ∀{φ γ} → Env φ γ → Nf γ → Nf φ
 hsubᴺ : ∀{φ γ} → Env φ γ → Ne γ → Nf φ
 

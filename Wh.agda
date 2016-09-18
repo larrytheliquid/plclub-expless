@@ -62,7 +62,7 @@ lift σ = `x 0 ∷ map wkn σ
 
 ----------------------------------------------------------------------
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 wh-hsub : ∀{φ γ} → Env φ γ → Wh γ → Wh φ
 wh-hsubᴺ : ∀{φ γ} → Env φ γ → Nu γ → Wh φ
 
@@ -105,7 +105,7 @@ data Ne γ where
 !_ : ∀{γ} → Close Wh Wh γ → Wh (suc γ)
 ! (σ `/ b) = wh-hsub (lift σ) b
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 force : ∀{γ} → Wh γ → Nf γ
 forceᴺ : ∀{γ} → Nu γ → Ne γ
 
@@ -171,7 +171,7 @@ postulate
 
 ----------------------------------------------------------------------
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 _≈_ : ∀{γ} → Wh γ → Wh γ → Bool
 _≈ᴺ_ : ∀{γ} → Nu γ → Nu γ → Bool
 

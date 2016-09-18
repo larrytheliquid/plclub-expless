@@ -29,7 +29,7 @@ postulate sub : ∀{γ} → Exp γ → Exp (suc γ) → Exp γ
 
 ----------------------------------------------------------------------
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 wh-norm : ∀{γ} → Exp γ → Exp γ
 
 wh-normᴮ : ∀{γ} → Bind Exp γ → Bind Exp γ
@@ -50,7 +50,7 @@ wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a
 
 ----------------------------------------------------------------------
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 force : ∀{γ} → Exp γ → Exp γ -- WH-NORM as input
 
 forceᴮ : ∀{γ} → Bind Exp γ → Bind Exp γ

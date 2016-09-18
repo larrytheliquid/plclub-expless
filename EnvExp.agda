@@ -72,7 +72,7 @@ lift σ = `x 0 ∷ map wknʷ σ
 
 ----------------------------------------------------------------------
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 eval : ∀{φ γ} → Env φ γ → Exp γ → Wh φ
 
 evalᴷ : ∀{φ γ} → Env φ γ → Bind Exp γ → Close Wh Exp φ
@@ -112,7 +112,7 @@ data Ne γ where
 !_ : ∀{γ} → Close Wh Exp γ → Wh (suc γ)
 ! (σ `/ b) = eval (lift σ) b
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 force : ∀{γ} → Wh γ → Nf γ
 forceᴺ : ∀{γ} → Nu γ → Ne γ
 
