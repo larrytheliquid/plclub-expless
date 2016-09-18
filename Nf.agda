@@ -113,7 +113,7 @@ normᴮ `∣ b ∣ = `∣ norm b ∣
 
 norm (`λ b) = `λ (normᴮ b)
 norm (`var i) = `[ `var i ]
-norm (f `∙ a) = norm f ∙ norm a 
+norm (f `∙ a) = norm f ∙ norm a
 
 prim-norm : Exp Prim → Nf 0
 prim-norm = hsub prim ∘ norm
@@ -138,4 +138,3 @@ infer Γ (f `∙ a) =
 infer Γ a = undefined
 
 ----------------------------------------------------------------------
-

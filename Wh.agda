@@ -152,7 +152,7 @@ wh-normᴮ `∣ b ∣ = ∣ wh-norm b ∣
 
 wh-norm (`λ b) = `λ (wh-normᴮ b)
 wh-norm (`var i) = `[ `var i ]
-wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a 
+wh-norm (f `∙ a) = wh-norm f ∙ wh-norm a
 
 prim-wh-norm : Exp Prim → Wh 0
 prim-wh-norm = wh-hsub prim ∘ wh-norm
@@ -206,4 +206,3 @@ infer Γ (f `∙ a) =
 infer Γ a = undefined
 
 ----------------------------------------------------------------------
-
